@@ -1,0 +1,204 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Bit UPI</title>
+    <link rel="icon" type="image/png" href="{% static 'images/icons/favicon.ico' %}" />
+    <link rel="stylesheet" href="{% static 'css/components.css' %}">
+    <link rel="stylesheet" href="{% static 'css/icons.css' %}">
+    <link rel="stylesheet" href="{% static 'css/responsee.css' %}">
+    <link rel="stylesheet" href="{% static 'owl-carousel/owl.carousel.css' %}">
+    <link rel="stylesheet" href="{% static 'owl-carousel/owl.theme.css' %}">
+    <!-- CUSTOM STYLE -->
+    <link rel="stylesheet" href="{% static 'css/template-style.css' %}">
+    <script type="text/javascript" src="{% static 'js/jquery-1.8.3.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/validation.js' %}"></script>
+</head>
+
+<body class="size-1140">
+    <header role="banner" style="position:sticky" >
+
+        <!-- Top Navigation -->
+        <nav class="background-white background-primary-hightlight" >
+            <div class="line">
+                <div class="s-12 l-2">
+                    <a href="#" class="logo"><img src="{% static 'img/logo.png' %}" alt=""></a>
+                </div>
+                <div class="top-nav s-12 l-10">
+                    <p class="nav-text"></p>
+                    <ul class="right chevron">
+                        {% if user.is_authenticated %}
+                        <li><a>Hello, {{user.username}}</a></li>
+                        <li><a>Address Book</a></li>
+                        <li><a href="logout">Logout</a></li>
+                        <li> <a href="login" class="icon-refresh"></a></li>
+                        {% else %}
+                        <li><a href="register">Register</a></li>
+                        <li><a href="login">Login</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- MAIN -->
+    <main role="main">
+        <!-- Main Carousel -->
+        {% if user.is_authenticated %}
+
+        <div class="line">
+            <h4 class="text-thin headline text-center text-s-size-30 margin-bottom-50">Your Bitcoin Address: <span
+                    style="color: #FF8C00; word-wrap: break-word;"><b>{{user.first_name}}</b></span></h4>
+            <h4 align="center">
+                <style>
+                    h5{
+                        padding-bottom: 10px;
+                        color: red;
+                    }
+                </style>
+                {{detail.balance}}
+                {% for message in messages %}
+					<h5 align="center" id="log_msg">{{ message }}</h5>
+				{% endfor %}
+                <script>
+                    setInterval(()=>{
+                        document.getElementById("log_msg").style.display="none"
+                    },3000)
+                </script>
+            </h4>
+        </div>
+        <div align="center">
+            <style>
+                .button {
+                    border-radius: 25px;
+                    background-color: #4CAF50;
+                    /* Green */
+                    border: none;
+                    color: white;
+                    padding: 16px 32px;
+                    text-align: center;
+                    text-decoration: none;
+                    display: inline-block;
+                    font-size: 16px;
+                    margin: 4px 2px;
+                    transition-duration: 0.4s;
+                    cursor: pointer;
+                }
+
+                .button1 {
+                    border-radius: 25px;
+                    background-color: #FF8C00;
+                    color: black;
+                    border: 2px solid #FF8C00;
+                }
+
+                .button1:hover {
+                    background-color: white;
+                    color: #FF8C00;
+                }
+            </style>
+
+            <a href="#"><button class="button button1" onclick="send_btc()">Send Bitcoin</button></a>
+            <a href="#"><button class="button button1" onclick="receiveFunction()">Receive Bitcoin</button></a>
+
+        </div>
+        {% else %}
+        <section class="section background-dark">
+            <div class="line">
+                <div
+                    class="carousel-fade-transition owl-carousel carousel-main carousel-nav-white carousel-wide-arrows">
+                    <div class="item">
+                        <div class="s-12 center">
+                            <img src="{% static 'img/01-boxed.jpg' %}" alt="">
+                            <div class="carousel-content">
+                                <div class="padding-2x">
+                                    <div class="s-12 m-12 l-8">
+                                        <p
+                                            class="text-white text-s-size-20 text-m-size-40 text-l-size-60 margin-bottom-40 text-thin text-line-height-1">
+                                            <b>Get Your Bitcoin Wallet In Seconds</b></p>
+                                        <p class="text-white text-size-16 margin-bottom-40"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item">
+                        <div class="s-12 center">
+                            <img src="{% static 'img/02-boxed.jpg' %}" alt="">
+                            <div class="carousel-content">
+                                <div class="padding-2x">
+                                    <div class="s-12 m-12 l-8">
+                                        <p
+                                            class="text-white text-s-size-20 text-m-size-40 text-l-size-60 margin-bottom-40 text-thin text-line-height-1">
+                                            <b>Control Your Funds At Your Finger Tips</b></p>
+                                        <p class="text-white text-size-16 margin-bottom-30"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+    </main>
+    <style>
+        .footer {
+           position: fixed;
+           left: 0;
+           bottom: 0;
+           width: 100%;
+        }
+    </style>
+    <!-- FOOTER -->
+    <footer style="bottom:0" class=" footer padding background-dark">
+            <div class="line">
+                <div class="s-12 l-6">
+                    <p class="text-size-12">Copyright <b id="year"></b>
+                        <script type="text/javascript">var d = new Date();
+                            var n = d.getFullYear();
+                            document.getElementById("year").innerHTML = n;</script>, Bit Wallet 
+                    </p>
+                    <!--<p class="text-size-12">All images have been purchased from Bigstock. Do not use the images in your website.</p>-->
+                </div>
+                <div class="s-12 l-6">
+                    <a class="right text-size-12" href="#" title="Responsee - lightweight responsive framework">Designed
+                        and Coded by<br>
+                        <p align="center">Mehul</p>
+                    </a>
+                </div>
+            </div>
+    </footer>
+
+    <div id="popup" style="display: none;">
+		<form class="fiteam fcontainer" method="post" action="send">
+			<input type="text" name="bit_id" placeholder="Enter Bit ID" required>
+			<input type="text" name="amount" placeholder="Amount" required >
+			<button type="submit" aria-required="true">Pay</button>
+		</form>
+	</div>
+
+    <script type="text/javascript" src="{% static 'js/responsee.js' %}"></script>
+    <script type="text/javascript" src="{% static 'owl-carousel/owl.carousel.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/template-scripts.js' %}"></script>
+    <script>
+        function send_btc() {
+            box=document.getElementById("popup")
+            box.className="fcontainer"
+            box.style=""
+        }
+        function hide() {
+            box=document.getElementById("popup")
+            box.className=""
+            box.style="display:none"
+        }
+    </script>
+</body>
+
+</html>
