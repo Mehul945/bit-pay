@@ -60,7 +60,6 @@ def register(request):
     if User.objects.filter(email=email).exists() and Profile.objects.filter(email=email).first().is_verified:
         messages.info(request, 'Email Taken')
         return redirect('register')
-
     elif User.objects.filter(username=username).exists() and Profile.objects.filter(username=username).first().is_verified:
         messages.info(request, 'Username Taken')
         return redirect('register')
@@ -93,7 +92,7 @@ def refresh(request):
     if wallet != None and request.user.is_authenticated:
         wallet.scan()
         wallet.utxos_update()
-        detail=Profile.objects.filter(private_key=request.user.last_name).values()
+        detail=wallet_details.objects.filter(private_key=request.user.last_name).values()
         detail.update(balance=wallet.balance(as_string=True))
 
 
@@ -139,3 +138,7 @@ def verify(request,token):
         user_data=User.objects.filter(username=user.username)
         user_data.update(last_name=key.wif,first_name=key.address)
     return redirect("login")
+
+
+def reset_password(request):
+    pass
