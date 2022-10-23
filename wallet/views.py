@@ -1,20 +1,27 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User, auth
 from django.contrib import messages
-from .models import Details,address_book
+from .models import Profile,address_book,wallet_details
 from bitcoinlib.wallets import wallet_create_or_open,wallet_delete
 from bitcoinlib.mnemonic import Mnemonic
 import pickle
+import six
 from functools import lru_cache
-from trycourier import Courier
-client = Courier(auth_token="pk_test_DDKR2Q0F8C4VM5JYPDDPXRRWCCXW")
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from .helper import *
 
-
+class TokenGenerator(PasswordResetTokenGenerator):  
+    def _make_hash_value(self, user, timestamp):  
+        return (  
+            six.text_type(user.username) + six.text_type(timestamp) +  
+            six.text_type(user.is_active)
+            )  
 wallet=None
 def index(request):
     if request.user.is_authenticated:
-        detail=Details.objects.filter(private_key=request.user.last_name).values()
-        return render(request, 'index.htm',{"detail":detail.get()})
+        detail=wallet_details.objects.filter(private_key=request.user.last_name).values().first()
+        print(detail)
+        return render(request, 'index.htm',{"detail":detail})
     return render(request, 'index.htm')
 
 def login(request):
@@ -23,19 +30,19 @@ def login(request):
         refresh(request)
         return redirect("/")
     elif request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
+        username = request.POST.get('username')
+        password = request.POST.get('password')
         user = auth.authenticate(username=username, password=password)
-        if user is not None:
+        if user is not None and Profile.objects.filter(user=user).first().is_verified:
             refresh(request)
             auth.login(request, user)
-            detail=Details.objects.filter(private_key=request.user.last_name).values()
+            detail=wallet_details.objects.filter(private_key=request.user.last_name).values()
+            print(detail)
             wallet=wallet_create_or_open(keys=detail[0]['phrase'],name=request.user.username,network='testnet',witness_type="segwit")
             return redirect("/")
         else:
             messages.info(request, 'Invalid Credentials')
             return redirect('login')
-    
     return render(request, 'login.htm')
 
 def register(request):
@@ -49,31 +56,31 @@ def register(request):
     if password!=password2:
         messages.info(request, 'password didn"t match')
         return  redirect('register')
-
-    if User.objects.filter(email=email).exists():
+    print(User.objects.filter(email=email))
+    if User.objects.filter(email=email).exists() and Profile.objects.filter(email=email).first().is_verified:
         messages.info(request, 'Email Taken')
         return redirect('register')
 
-    elif User.objects.filter(username=username).exists():
+    elif User.objects.filter(username=username).exists() and Profile.objects.filter(username=username).first().is_verified:
         messages.info(request, 'Username Taken')
         return redirect('register')
-    else:
-        phrase=Mnemonic().generate()
-        pickle.dump(file=open(username+'.pkl',"wb"),obj=phrase)
-        detail=Details()
-        wallet=wallet_create_or_open(keys=phrase,name=username,network='testnet',witness_type="segwit")
-        key=wallet.get_key()
-        detail.balance=wallet.balance()
-        detail.balance1=wallet.balance()
-        detail.phrase=phrase
-        detail.address=key.address
-        detail.private_key=key.wif
-        user = User.objects.create_user(username=username, email=email, password=password, last_name=key.wif, first_name=key.address)
-        user.save()
+    elif User.objects.filter(username=username).exists() and (not Profile.objects.filter(username=username).first().is_verified):
+        user=User.objects.filter(username=username).first()
+        token=TokenGenerator().make_token(user)
+        send_verification_link(email,username,token)
+        detail=Profile.objects.filter(user=user).first()
+        detail.update(token=token)
         detail.save()
+        return redirect('login')
+    else:
+        user = User.objects.create_user(username=username, email=email, password=password)
+        token=TokenGenerator().make_token(user)
+        send_verification_link(email,username,token)
+        detail=Profile.objects.create(user=user,email=email,token=token)
+        detail.save()
+        user.save()
         print('User Created')
         return redirect('login')
-
     return redirect('/')
 
 def logout(request):
@@ -86,7 +93,7 @@ def refresh(request):
     if wallet != None and request.user.is_authenticated:
         wallet.scan()
         wallet.utxos_update()
-        detail=Details.objects.filter(private_key=request.user.last_name).values()
+        detail=Profile.objects.filter(private_key=request.user.last_name).values()
         detail.update(balance=wallet.balance(as_string=True))
 
 
@@ -107,22 +114,28 @@ def send(request):
             if not trx.pushed:
                 messages.info(request, 'Transaction failed')
                 status="Failed"
-            resp = client.send_message(
-                message={
-                    "to": {
-                    "email": f"{request.user.email}"
-                    },
-                    "template": "0QG3HBMKB7MXKCKDWKXAF8THNZAC",
-                    "data": {
-                        "recipientName": f"{request.user.username}",
-                        "user1":f"{bit_id}",
-                        "amount":f"{amount*0.00000001:.8f} BTC",
-                        "status":f"{status}",
-                    },
-                }
-            )
+            send_transaction_email(status,request.user.email,request.user.username,amount,bit_id)
             print(trx.info())
         else:
             messages.info(request, 'User not found')
             
     return redirect("/")
+
+def verify(request,token):
+    user=Profile.objects.filter(token=token).first().user
+    profile=Profile.objects.filter(user=user).values()
+    ch_token=TokenGenerator().check_token(user,token)
+    print(ch_token)
+    if ch_token and (not profile.first()["is_verified"]):
+        phrase=Mnemonic().generate()
+        pickle.dump(file=open(request.user.username+'.pkl',"wb"),obj=phrase)
+        wallet=wallet_create_or_open(keys=phrase,name=user.username,network='testnet',witness_type="segwit")
+        key=wallet.get_key()
+        w_details=wallet_details.objects.create(balance=wallet.balance(as_string=True),INR_balance=0,private_key=key.wif,phrase=phrase,address=key.address)
+        w_details.save()
+        
+        profile.update(is_verified=True)
+
+        user_data=User.objects.filter(username=user.username)
+        user_data.update(last_name=key.wif,first_name=key.address)
+    return redirect("login")
