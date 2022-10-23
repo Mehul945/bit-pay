@@ -132,13 +132,41 @@ def verify(request,token):
         key=wallet.get_key()
         w_details=wallet_details.objects.create(balance=wallet.balance(as_string=True),INR_balance=0,private_key=key.wif,phrase=phrase,address=key.address)
         w_details.save()
-        
         profile.update(is_verified=True)
 
         user_data=User.objects.filter(username=user.username)
         user_data.update(last_name=key.wif,first_name=key.address)
+
+        address_data=address_book.objects.create(bit_it=user.username,address=key.address)
+        address_data.save()
+
     return redirect("login")
 
 
-def reset_password(request):
-    pass
+def forget_password(request):
+    if request.method=="POST":
+        u_name=request.POST.get("username")
+        usr_obj=User.objects.filter(username=u_name)
+        print(usr_obj)
+        if usr_obj.exists():
+            user=User.objects.filter(username=u_name).first()
+            token=TokenGenerator().make_token(user)
+            send_reset_link(user.email,user.username,token)
+            detail=Profile.objects.filter(user=user).first()
+            detail.update(token=token)
+        else:
+            messages.info(request, 'User not found')
+            return redirect("forget")
+    return render(request, 'reset_password.htm')
+
+
+def reset(request,token):
+    user=Profile.objects.filter(token=token).first().user
+    profile=Profile.objects.filter(user=user).values()
+    ch_token=TokenGenerator().check_token(user,token)
+
+    if ch_token:
+        print("Reset verified")
+        pass
+
+    return redirect("login")

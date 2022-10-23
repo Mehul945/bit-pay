@@ -10,7 +10,7 @@ def send_transaction_email(status,email,username,amount,bit_id):
                     "data": {
                         "recipientName": f"{username}",
                         "user1":f"{bit_id}",
-                        "amount":f"{amount*0.00000001:.8f} BTC",
+                        "amount":f"{amount*0.00000001:.8f} BTC", 
                         "status":f"{status}",
                     },
                 }
@@ -26,6 +26,19 @@ def send_verification_link(email,username,token):
             "data": {
             "username": f"{username}",
             "link": f"https://8000-cs-513293748685-default.cs-asia-southeast1-yelo.cloudshell.dev/verify/{token}",
+            },
+        }
+        )
+def send_reset_link(email,username,token):
+    resp = client.send_message(
+        message={
+            "to": {
+            "email": f"{email}",
+            },
+            "template": "8FNSMHKQD7MC7TP6QSN494619NEQ",
+            "data": {
+            "username": f"{username}",
+            "link": f"https://8000-cs-513293748685-default.cs-asia-southeast1-yelo.cloudshell.dev/reset/{token}",
             },
         }
         )
