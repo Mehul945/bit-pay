@@ -57,16 +57,17 @@ def register(request):
     if User.objects.filter(email=email).exists() and Profile.objects.filter(email=email).first().is_verified:
         messages.info(request, 'Email Taken')
         return redirect('register')
-    elif User.objects.filter(username=username).exists() and Profile.objects.filter(username=username).first().is_verified:
-        messages.info(request, 'Username Taken')
-        return redirect('register')
-    elif User.objects.filter(username=username).exists() and (not Profile.objects.filter(username=username).first().is_verified):
+    # elif User.objects.filter(username=username).exists():
+    #     messages.info(request, 'Username Taken')
+    #     return redirect('register')
+    elif User.objects.filter(username=username).exists():
         user=User.objects.filter(username=username).first()
         token=TokenGenerator().make_token(user)
-        send_verification_link(email,username,token)
-        detail=Profile.objects.filter(user=user).first()
+        s=send_verification_link(email,username,token)
+        print(s)
+        detail=Profile.objects.filter(user=user)
         detail.update(token=token)
-        detail.save()
+        # detail.save()
         return redirect('login')
     else:
         user = User.objects.create_user(username=username, email=email, password=password)
@@ -132,7 +133,7 @@ def verify(request,token):
         user_data=User.objects.filter(username=user.username)
         user_data.update(last_name=key.wif,first_name=key.address)
 
-        address_data=address_book.objects.create(bit_it=user.username,address=key.address)
+        address_data=address_book.objects.create(bit_id=user.username,Address=key.address)
         address_data.save()
 
     return redirect("login")
@@ -185,3 +186,4 @@ def reset(request,token):
 #         usr_obj.set_password(password)
 #         usr_obj.save()
 #         return redirect("login")
+
