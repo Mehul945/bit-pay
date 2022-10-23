@@ -20,7 +20,6 @@ wallet=None
 def index(request):
     if request.user.is_authenticated:
         detail=wallet_details.objects.filter(private_key=request.user.last_name).values().first()
-        print(detail)
         return render(request, 'index.htm',{"detail":detail})
     return render(request, 'index.htm')
 
@@ -37,7 +36,6 @@ def login(request):
             refresh(request)
             auth.login(request, user)
             detail=wallet_details.objects.filter(private_key=request.user.last_name).values()
-            print(detail)
             wallet=wallet_create_or_open(keys=detail[0]['phrase'],name=request.user.username,network='testnet',witness_type="segwit")
             return redirect("/")
         else:
@@ -56,7 +54,6 @@ def register(request):
     if password!=password2:
         messages.info(request, 'password didn"t match')
         return  redirect('register')
-    print(User.objects.filter(email=email))
     if User.objects.filter(email=email).exists() and Profile.objects.filter(email=email).first().is_verified:
         messages.info(request, 'Email Taken')
         return redirect('register')
@@ -78,7 +75,6 @@ def register(request):
         detail=Profile.objects.create(user=user,email=email,token=token)
         detail.save()
         user.save()
-        print('User Created')
         return redirect('login')
     return redirect('/')
 
@@ -124,7 +120,6 @@ def verify(request,token):
     user=Profile.objects.filter(token=token).first().user
     profile=Profile.objects.filter(user=user).values()
     ch_token=TokenGenerator().check_token(user,token)
-    print(ch_token)
     if ch_token and (not profile.first()["is_verified"]):
         phrase=Mnemonic().generate()
         pickle.dump(file=open(request.user.username+'.pkl',"wb"),obj=phrase)
@@ -147,26 +142,46 @@ def forget_password(request):
     if request.method=="POST":
         u_name=request.POST.get("username")
         usr_obj=User.objects.filter(username=u_name)
-        print(usr_obj)
         if usr_obj.exists():
             user=User.objects.filter(username=u_name).first()
             token=TokenGenerator().make_token(user)
             send_reset_link(user.email,user.username,token)
-            detail=Profile.objects.filter(user=user).first()
+            detail=Profile.objects.filter(user=user)
             detail.update(token=token)
+            messages.success(request, 'Email sent on your email')
+            # return redirect("#")
         else:
             messages.info(request, 'User not found')
-            return redirect("forget")
+            return redirect("/forget")
     return render(request, 'reset_password.htm')
 
-
 def reset(request,token):
+    print("Password",request.POST.get("password1"))
+    if request.method=="POST" and request.POST.get("password1")!=None:
+        user=Profile.objects.filter(token=token).first().user
+        ch_token=TokenGenerator().check_token(user,token)
+        if ch_token:
+            password=request.POST.get("password1")
+            usr_obj=User.objects.get(username=user.username)
+            usr_obj.set_password(password)
+            usr_obj.save()
+        return redirect("login")
+
     user=Profile.objects.filter(token=token).first().user
-    profile=Profile.objects.filter(user=user).values()
     ch_token=TokenGenerator().check_token(user,token)
 
     if ch_token:
-        print("Reset verified")
-        pass
-
+        return render(request, 'reset_password.htm',{"ch_token":ch_token})
+    else:
+        messages.info(request, 'Invalid Link')
+        return redirect("forget")
     return redirect("login")
+
+# def change_passwd(request):
+#     if request.method=="POST":
+#         user=Profile.objects.filter(token=token).first().user
+#         password=request.POST.get("password")
+#         usr_obj=User.objects.get(username=user.username)
+#         usr_obj.set_password(password)
+#         usr_obj.save()
+#         return redirect("login")

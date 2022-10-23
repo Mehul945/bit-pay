@@ -22,7 +22,7 @@ def send_verification_link(email,username,token):
             "to": {
             "email": f"{email}",
             },
-            "template": "8FNSMHKQD7MC7TP6QSN494619NEQ",
+            "template": "B166FQMQB94KKRP5X60R7G8PJYV8",
             "data": {
             "username": f"{username}",
             "link": f"https://8000-cs-513293748685-default.cs-asia-southeast1-yelo.cloudshell.dev/verify/{token}",
@@ -35,10 +35,10 @@ def send_reset_link(email,username,token):
             "to": {
             "email": f"{email}",
             },
-            "template": "8FNSMHKQD7MC7TP6QSN494619NEQ",
+            "template": "1C8M80SH1T4SNSN10H28X7P26C3W",
             "data": {
-            "username": f"{username}",
-            "link": f"https://8000-cs-513293748685-default.cs-asia-southeast1-yelo.cloudshell.dev/reset/{token}",
+                "link": f"https://8000-cs-513293748685-default.cs-asia-southeast1-yelo.cloudshell.dev/reset/{token}",
+                "username":f"{username}"
             },
         }
         )
