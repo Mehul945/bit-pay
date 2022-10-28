@@ -93,6 +93,7 @@ def refresh(request):
         detail.update(balance=wallet.balance(as_string=True))
 
 
+
 def send(request):
     global wallet
     if wallet!=None and request.method=="POST":
@@ -178,12 +179,4 @@ def reset(request,token):
         return redirect("forget")
     return redirect("login")
 
-# def change_passwd(request):
-#     if request.method=="POST":
-#         user=Profile.objects.filter(token=token).first().user
-#         password=request.POST.get("password")
-#         usr_obj=User.objects.get(username=user.username)
-#         usr_obj.set_password(password)
-#         usr_obj.save()
-#         return redirect("login")
 
