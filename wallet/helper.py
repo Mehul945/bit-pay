@@ -1,5 +1,6 @@
 from trycourier import Courier
 client = Courier(auth_token="pk_test_DDKR2Q0F8C4VM5JYPDDPXRRWCCXW")
+web_url="https://8000-cs-513293748685-default.cs-asia-southeast1-yelo.cloudshell.dev"
 def send_transaction_email(status,email,username,amount,bit_id):
     resp = client.send_message(
                 message={
@@ -25,7 +26,7 @@ def send_verification_link(email,username,token):
             "template": "8FNSMHKQD7MC7TP6QSN494619NEQ",
             "data": {
             "username": f"{username}",
-            "link": f"https://bitpay.pagekite.me/verify/{token}",
+            "link": f"{web_url}/verify/{token}",
             },
         }
         )
@@ -37,7 +38,7 @@ def send_reset_link(email,username,token):
             },
             "template": "1C8M80SH1T4SNSN10H28X7P26C3W",
             "data": {
-                "link": f"https://bitpay.pagekite.me/reset/{token}",
+                "link": f"{web_url}/reset/{token}",
                 "username":f"{username}"
             },
         }

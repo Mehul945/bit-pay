@@ -27,7 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-CSRF_TRUSTED_ORIGINS =["https://80-cs-513293748685-default.cs-asia-southeast1-yelo.cloudshell.dev"]
+CSRF_TRUSTED_ORIGINS =["https://8000-cs-513293748685-default.cs-asia-southeast1-yelo.cloudshell.dev"]
 # Application definition
 
 INSTALLED_APPS = [
@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
+AUTH_USER_MODEL="wallet.User"
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

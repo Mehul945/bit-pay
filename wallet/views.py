@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.models import User, auth
+from django.contrib.auth.models import auth
+from .models import User
 from django.contrib import messages
-from .models import Profile,address_book,wallet_details
+from .models import address_book,wallet_details
 from bitcoinlib.wallets import wallet_create_or_open,wallet_delete
 from bitcoinlib.mnemonic import Mnemonic
 import pickle
@@ -19,7 +20,7 @@ class TokenGenerator(PasswordResetTokenGenerator):
 wallet=None
 def index(request):
     if request.user.is_authenticated:
-        detail=wallet_details.objects.filter(private_key=request.user.last_name).values().first()
+        detail=wallet_details.objects.filter(private_key=request.user.last_name).values()
         return render(request, 'index.htm',{"detail":detail})
     return render(request, 'index.htm')
 
@@ -32,11 +33,11 @@ def login(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         user = auth.authenticate(username=username, password=password)
-        if user is not None and Profile.objects.filter(user=user).first().is_verified:
+        if (user is not None) and User.objects.get(username=username).is_verified:
             refresh(request)
             auth.login(request, user)
             detail=wallet_details.objects.filter(private_key=request.user.last_name).values()
-            wallet=wallet_create_or_open(keys=detail[0]['phrase'],name=request.user.username,network='testnet',witness_type="segwit")
+            wallet=wallet_create_or_open(keys=detail.phrase,name=request.user.username,network='testnet',witness_type="segwit")
             return redirect("/")
         else:
             messages.info(request, 'Invalid Credentials')
@@ -54,27 +55,24 @@ def register(request):
     if password!=password2:
         messages.info(request, 'password didn"t match')
         return  redirect('register')
-    if User.objects.filter(email=email).exists() and Profile.objects.filter(email=email).first().is_verified:
+    if User.objects.filter(email=email).exists() and User.objects.get(email=email).is_verified:
         messages.info(request, 'Email Taken')
         return redirect('register')
-    # elif User.objects.filter(username=username).exists():
-    #     messages.info(request, 'Username Taken')
-    #     return redirect('register')
-    elif User.objects.filter(username=username).exists():
-        user=User.objects.filter(username=username).first()
+    elif User.objects.filter(username=username).exists() and User.objects.get(username=username).is_verified:
+        messages.info(request, 'Username Taken')
+        return redirect('register')
+    elif User.objects.filter(username=username).exists() and (not User.objects.filter(username=username).first().is_verified):
+        user=User.objects.filter(username=username).values()
         token=TokenGenerator().make_token(user)
         s=send_verification_link(email,username,token)
         print(s)
-        detail=Profile.objects.filter(user=user)
-        detail.update(token=token)
-        # detail.save()
+        user.update(token=token)
+        user.save()
         return redirect('login')
     else:
-        user = User.objects.create_user(username=username, email=email, password=password)
         token=TokenGenerator().make_token(user)
+        user = User.objects.create_user(username=username, email=email, password=password,token=token)
         send_verification_link(email,username,token)
-        detail=Profile.objects.create(user=user,email=email,token=token)
-        detail.save()
         user.save()
         return redirect('login')
     return redirect('/')
@@ -92,13 +90,11 @@ def refresh(request):
         detail=wallet_details.objects.filter(private_key=request.user.last_name).values()
         detail.update(balance=wallet.balance(as_string=True))
 
-
-
 def send(request):
     global wallet
     if wallet!=None and request.method=="POST":
-        amount=int(request.POST["amount"])
-        bit_id=request.POST["bit_id"]
+        amount=int(request.POST.get("amount"))
+        bit_id=request.POST.get("bit_id")
         if (amount+1000)>wallet.balance():
             messages.info(request, "No enough fund")
             return redirect("/")
@@ -119,24 +115,20 @@ def send(request):
     return redirect("/")
 
 def verify(request,token):
-    user=Profile.objects.filter(token=token).first().user
-    profile=Profile.objects.filter(user=user).values()
+    user=User.objects.get(token=token)
     ch_token=TokenGenerator().check_token(user,token)
-    if ch_token and (not profile.first()["is_verified"]):
+    if ch_token and (not user.is_verified):
         phrase=Mnemonic().generate()
         pickle.dump(file=open(request.user.username+'.pkl',"wb"),obj=phrase)
         wallet=wallet_create_or_open(keys=phrase,name=user.username,network='testnet',witness_type="segwit")
         key=wallet.get_key()
         w_details=wallet_details.objects.create(balance=wallet.balance(as_string=True),INR_balance=0,private_key=key.wif,phrase=phrase,address=key.address)
         w_details.save()
-        profile.update(is_verified=True)
-
-        user_data=User.objects.filter(username=user.username)
-        user_data.update(last_name=key.wif,first_name=key.address)
+        user.update(is_verified=True,last_name=key.wif,first_name=key.address)
+        user.save()
 
         address_data=address_book.objects.create(bit_id=user.username,Address=key.address)
         address_data.save()
-
     return redirect("login")
 
 
@@ -145,11 +137,11 @@ def forget_password(request):
         u_name=request.POST.get("username")
         usr_obj=User.objects.filter(username=u_name)
         if usr_obj.exists():
-            user=User.objects.filter(username=u_name).first()
+            user=User.objects.get(username=u_name)
             token=TokenGenerator().make_token(user)
             send_reset_link(user.email,user.username,token)
-            detail=Profile.objects.filter(user=user)
-            detail.update(token=token)
+            user.token=token
+            user.save()
             messages.success(request, 'Email sent on your email')
             # return redirect("#")
         else:
@@ -160,7 +152,7 @@ def forget_password(request):
 def reset(request,token):
     print("Password",request.POST.get("password1"))
     if request.method=="POST" and request.POST.get("password1")!=None:
-        user=Profile.objects.filter(token=token).first().user
+        user=User.objects.filter(token=token).first()
         ch_token=TokenGenerator().check_token(user,token)
         if ch_token:
             password=request.POST.get("password1")
@@ -169,7 +161,7 @@ def reset(request,token):
             usr_obj.save()
         return redirect("login")
 
-    user=Profile.objects.filter(token=token).first().user
+    user=User.objects.filter(token=token).first()
     ch_token=TokenGenerator().check_token(user,token)
 
     if ch_token:
