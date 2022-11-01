@@ -43,4 +43,4 @@ def send_reset_link(email,username,token):
             },
         }
         )
-
+    print(resp)

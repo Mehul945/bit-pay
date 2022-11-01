@@ -20,7 +20,7 @@ class TokenGenerator(PasswordResetTokenGenerator):
 wallet=None
 def index(request):
     if request.user.is_authenticated:
-        detail=wallet_details.objects.filter(private_key=request.user.last_name).values()
+        detail=wallet_details.objects.get(private_key=request.user.last_name)
         return render(request, 'index.htm',{"detail":detail})
     return render(request, 'index.htm')
 
@@ -36,8 +36,9 @@ def login(request):
         if (user is not None) and User.objects.get(username=username).is_verified:
             refresh(request)
             auth.login(request, user)
-            detail=wallet_details.objects.filter(private_key=request.user.last_name).values()
+            detail=wallet_details.objects.get(private_key=request.user.last_name)
             wallet=wallet_create_or_open(keys=detail.phrase,name=request.user.username,network='testnet',witness_type="segwit")
+            print("[Wallet : ..... ]",wallet)
             return redirect("/")
         else:
             messages.info(request, 'Invalid Credentials')
@@ -111,7 +112,7 @@ def send(request):
             print(trx.info())
         else:
             messages.info(request, 'User not found')
-            
+    print(wallet)        
     return redirect("/")
 
 def verify(request,token):
@@ -124,7 +125,7 @@ def verify(request,token):
         key=wallet.get_key()
         w_details=wallet_details.objects.create(balance=wallet.balance(as_string=True),INR_balance=0,private_key=key.wif,phrase=phrase,address=key.address)
         w_details.save()
-        user.update(is_verified=True,last_name=key.wif,first_name=key.address)
+        user.update(is_verified=True,last_name=key.wif,first_name=key.address,token=None)
         user.save()
 
         address_data=address_book.objects.create(bit_id=user.username,Address=key.address)
@@ -170,5 +171,3 @@ def reset(request,token):
         messages.info(request, 'Invalid Link')
         return redirect("forget")
     return redirect("login")
-
-
