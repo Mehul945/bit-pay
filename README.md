@@ -19,11 +19,12 @@ pip install trycourier <br>
 pip install bitcoinlib <br>
 
 ### Executing program
-go to bitcoin-wallet folder where manage.py file is available  <br>
+go to bit-pay folder where manage.py file is available  <br>
 command : python manage.py runserver <br>
+copy this link generally : https:127.0.0.1:8000
 
 ## Links
-http://codewithmehul.pythonanywhere.com
-https://bitpayy.herokuapp.com
+http://codewithmehul.pythonanywhere.com <br>
+https://bitpayy.herokuapp.com <br>
 
 This project is licensed under the MIT License - see the LICENSE.md file for details
