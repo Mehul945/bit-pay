@@ -21,7 +21,7 @@ pip install bitcoinlib <br>
 ### Executing program
 go to bit-pay folder where manage.py file is available  <br>
 command : python manage.py runserver <br>
-copy this link generally : https:127.0.0.1:8000
+copy this link generally : http://127.0.0.1:8000
 
 ## Links
 http://codewithmehul.pythonanywhere.com <br>
